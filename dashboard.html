@@ -1,0 +1,246 @@
+{% extends "layout.html" %}
+{% block title %}My Dashboard — GraniteCare AI{% endblock %}
+{% block page_title %}My Health Dashboard{% endblock %}
+
+{% block content %}
+{% set r = patient.latest_reading %}
+
+<!-- Welcome Banner -->
+<div class="welcome-banner">
+  <div>
+    <h2 class="welcome-name">Hello, {{ current_user.full_name.split()[0] }} 👋</h2>
+    <p class="welcome-sub">
+      Patient ID: <strong>{{ patient.patient_code }}</strong> ·
+      {% if patient.primary_disease %}{{ patient.primary_disease }}{% else %}Profile incomplete — <a href="{{ url_for('patient_profile') }}">complete your profile</a>{% endif %}
+    </p>
+  </div>
+  {% if alerts %}
+  <a href="{{ url_for('patient_alerts') }}" class="alert-banner-btn critical">
+    🔔 {{ alerts|length }} New Alert{{ 's' if alerts|length > 1 else '' }}
+  </a>
+  {% endif %}
+</div>
+
+<!-- Vital Summary Cards -->
+<div class="vitals-summary-grid">
+  <div class="vs-card {% if r and r.heart_rate %}{% if r.heart_rate > 100 or r.heart_rate < 50 %}vs-warning{% endif %}{% endif %}">
+    <div class="vs-icon">❤️</div>
+    <div class="vs-label">Heart Rate</div>
+    <div class="vs-value">{{ r.heart_rate|int if r and r.heart_rate else '--' }} <span class="vs-unit">bpm</span></div>
+    <div class="vs-status">Target: 60–100 bpm</div>
+  </div>
+  <div class="vs-card {% if r and r.bp_systolic and r.bp_systolic >= 140 %}vs-warning{% endif %}">
+    <div class="vs-icon">🫀</div>
+    <div class="vs-label">Blood Pressure</div>
+    <div class="vs-value">
+      {{ (r.bp_systolic|int ~ '/' ~ r.bp_diastolic|int) if r and r.bp_systolic else '--/--' }} <span class="vs-unit">mmHg</span>
+    </div>
+    <div class="vs-status">Target: &lt;130/80</div>
+  </div>
+  <div class="vs-card {% if r and r.blood_glucose and (r.blood_glucose > 180 or r.blood_glucose < 70) %}vs-warning{% endif %}">
+    <div class="vs-icon">🔥</div>
+    <div class="vs-label">Blood Glucose</div>
+    <div class="vs-value">{{ r.blood_glucose|int if r and r.blood_glucose else '--' }} <span class="vs-unit">mg/dL</span></div>
+    <div class="vs-status">Target: 70–140 mg/dL</div>
+  </div>
+  <div class="vs-card {% if r and r.spo2 and r.spo2 < 95 %}vs-warning{% endif %}">
+    <div class="vs-icon">🫁</div>
+    <div class="vs-label">Oxygen Level</div>
+    <div class="vs-value">{{ r.spo2|int if r and r.spo2 else '--' }}<span class="vs-unit">%</span></div>
+    <div class="vs-status">Target: ≥ 95%</div>
+  </div>
+  <div class="vs-card">
+    <div class="vs-icon">⚖️</div>
+    <div class="vs-label">BMI</div>
+    <div class="vs-value">{{ patient.bmi or '--' }}</div>
+    <div class="vs-status">{{ patient.weight_kg ~ ' kg' if patient.weight_kg else 'Not set' }}</div>
+  </div>
+  <div class="vs-card {% if r %}{{ 'vs-critical' if r.risk_level == 'critical' else ('vs-warning' if r.risk_level in ['concerning','attention'] else 'vs-ok') }}{% endif %}">
+    <div class="vs-icon">🛡️</div>
+    <div class="vs-label">Risk Score</div>
+    <div class="vs-value">{{ r.risk_score if r else '--' }}<span class="vs-unit">/100</span></div>
+    <div class="vs-status">{{ r.risk_level.upper() if r else 'No data' }}</div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions">
+  <a href="{{ url_for('patient_readings') }}" class="qa-btn primary">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    Log Health Reading
+  </a>
+  <a href="{{ url_for('patient_ai_assistant') }}" class="qa-btn blue">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    Ask AI Assistant
+  </a>
+  <a href="{{ url_for('patient_reports') }}" class="qa-btn gray">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="2"/></svg>
+    Download Report
+  </a>
+</div>
+
+<div class="dash-grid">
+  <!-- AI Health Insight -->
+  <div class="dash-card span-2">
+    <div class="dash-card-header">
+      <h3>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="9" height="9" rx="1" fill="#1d4ed8"/><rect x="13" y="2" width="9" height="9" rx="1" fill="#1d4ed8"/><rect x="2" y="13" width="9" height="9" rx="1" fill="#1d4ed8"/><rect x="13" y="13" width="9" height="9" rx="1" fill="#1d4ed8"/></svg>
+        IBM Granite AI Health Insight
+      </h3>
+      <span class="model-tag">granite-3.0-8b-instruct</span>
+      <button class="btn-refresh" id="refreshInsight" onclick="loadAIInsight()">↻ Refresh</button>
+    </div>
+    <div class="ai-insight-body" id="aiInsightBody">
+      <div class="loading-state">
+        <div class="loading-dots"><span></span><span></span><span></span></div>
+        Analyzing your health data with IBM Granite 3.0...
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Readings -->
+  <div class="dash-card">
+    <div class="dash-card-header">
+      <h3>Recent Readings</h3>
+      <a href="{{ url_for('patient_readings') }}" class="btn-link">View All →</a>
+    </div>
+    {% if recent %}
+    <table class="mini-table">
+      <thead><tr><th>Date</th><th>HR</th><th>BP</th><th>Glucose</th><th>Risk</th></tr></thead>
+      <tbody>
+      {% for reading in recent %}
+      <tr>
+        <td>{{ reading.recorded_at.strftime('%m/%d') }}</td>
+        <td>{{ reading.heart_rate|int if reading.heart_rate else '-' }}</td>
+        <td>{% if reading.bp_systolic %}{{ reading.bp_systolic|int }}/{{ reading.bp_diastolic|int }}{% else %}-{% endif %}</td>
+        <td>{{ reading.blood_glucose|int if reading.blood_glucose else '-' }}</td>
+        <td><span class="risk-badge risk-{{ reading.risk_level }}">{{ reading.risk_level.upper() if reading.risk_level else 'N/A' }}</span></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <p>No readings yet. <a href="{{ url_for('patient_readings') }}">Log your first reading</a>.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Medications Today -->
+  <div class="dash-card">
+    <div class="dash-card-header">
+      <h3>Today's Medications</h3>
+      <a href="{{ url_for('patient_medications') }}" class="btn-link">Manage →</a>
+    </div>
+    {% if medications %}
+    <div class="med-list">
+      {% for med in medications %}
+      <div class="med-item">
+        <div class="med-icon">💊</div>
+        <div class="med-info">
+          <div class="med-name">{{ med.name }}</div>
+          <div class="med-detail">{{ med.dosage }} · {{ med.frequency }}</div>
+          {% if med.reminder_time %}<div class="med-time">⏰ {{ med.reminder_time }}</div>{% endif %}
+        </div>
+        <form method="POST" action="{{ url_for('patient_medications') }}" style="margin:0">
+          <input type="hidden" name="action" value="mark_taken">
+          <input type="hidden" name="med_id" value="{{ med.id }}">
+          <button type="submit" class="btn-mark-taken">✓ Taken</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>No medications. <a href="{{ url_for('patient_medications') }}">Add medications</a>.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Active Conditions -->
+  <div class="dash-card">
+    <div class="dash-card-header">
+      <h3>Active Conditions</h3>
+      <a href="{{ url_for('patient_conditions') }}" class="btn-link">Manage →</a>
+    </div>
+    <div class="cond-list">
+      {% set active_conds = patient.conditions | selectattr('is_active') | list %}
+      {% if active_conds %}
+        {% for c in active_conds %}
+        <div class="cond-item">
+          <div class="cond-dot"></div>
+          <span>{{ c.name }}</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state"><p>No conditions added. <a href="{{ url_for('patient_conditions') }}">Add conditions</a>.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Glucose Trend Chart -->
+  <div class="dash-card span-2">
+    <div class="dash-card-header">
+      <h3>Glucose Trend (Last 14 days)</h3>
+    </div>
+    <canvas id="glucoseChart" height="80"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function loadAIInsight() {
+  const body = document.getElementById('aiInsightBody');
+  body.innerHTML = '<div class="loading-state"><div class="loading-dots"><span></span><span></span><span></span></div> Analyzing with IBM Granite 3.0...</div>';
+  fetch('/api/patient/ai-insight')
+    .then(r => r.json())
+    .then(data => {
+      if (data.insight) {
+        const html = data.insight
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n•\s/g, '</p><p class="ai-bullet">• ')
+          .replace(/\n\n/g, '</p><p>')
+          .replace(/\n/g, '<br>');
+        body.innerHTML = '<div class="ai-content"><span class="ai-dot"></span><div class="ai-text"><p>' + html + '</p></div></div>';
+      } else {
+        body.innerHTML = '<div class="ai-unavailable"><p>⚠️ IBM Granite AI is temporarily unavailable. Your health data has been saved successfully.</p><p style="margin-top:8px;font-size:12px;color:#94a3b8">Error: ' + (data.error || 'Unknown') + '</p></div>';
+      }
+    })
+    .catch(() => { body.innerHTML = '<p class="ai-unavailable">⚠️ Unable to reach AI service. Please try again.</p>'; });
+}
+
+// Load chart data
+fetch('/api/patient/chart-data?days=14')
+  .then(r => r.json())
+  .then(data => {
+    const ctx = document.getElementById('glucoseChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.labels,
+        datasets: [{
+          label: 'Blood Glucose (mg/dL)',
+          data: data.glucose,
+          borderColor: '#f59e0b',
+          backgroundColor: 'rgba(245,158,11,0.08)',
+          tension: 0.4, fill: true, pointRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { min: 50, suggestedMax: 200,
+            grid: { color: '#f1f5f9' },
+            ticks: { color: '#94a3b8', font: { size: 11 } } },
+          x: { grid: { display: false },
+            ticks: { color: '#94a3b8', font: { size: 10 }, maxTicksLimit: 8 } }
+        }
+      }
+    });
+  });
+
+document.addEventListener('DOMContentLoaded', loadAIInsight);
+</script>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+{% block title %}AI Health Assistant{% endblock %}
+{% block page_title %}AI Health Assistant{% endblock %}
+{% block content %}
+<div class="ai-chat-layout">
+  <div class="chat-main">
+    <div class="chat-header">
+      <div class="chat-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="9" height="9" rx="1" fill="white"/><rect x="13" y="2" width="9" height="9" rx="1" fill="white"/><rect x="2" y="13" width="9" height="9" rx="1" fill="white"/><rect x="13" y="13" width="9" height="9" rx="1" fill="white"/></svg>
+      </div>
+      <div>
+        <div class="chat-title">IBM Granite Health Assistant</div>
+        <div class="chat-model">Powered by granite-3.0-8b-instruct · Patient-specific context enabled</div>
+      </div>
+      <div class="chat-status"><span class="pulse-sm"></span> AI Ready</div>
+    </div>
+
+    <!-- Chat history display -->
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-msg assistant">
+        <div class="msg-avatar">AI</div>
+        <div class="msg-content">
+          <strong>Hello, {{ current_user.full_name.split()[0] }}!</strong> I'm your IBM Granite AI health assistant. I have access to your health profile and recent readings. You can ask me anything about your health, medications, symptoms, or chronic disease management.
+          <div class="msg-suggestions">
+            <button class="sug-btn" onclick="askSuggestion(this)">Why is my blood sugar increasing?</button>
+            <button class="sug-btn" onclick="askSuggestion(this)">What do my latest readings mean?</button>
+            <button class="sug-btn" onclick="askSuggestion(this)">Summarize my last 7 days of health data</button>
+            <button class="sug-btn" onclick="askSuggestion(this)">What lifestyle changes help manage diabetes?</button>
+            <button class="sug-btn" onclick="askSuggestion(this)">What warning signs should I watch for?</button>
+          </div>
+        </div>
+      </div>
+
+      {% if history %}
+        {% for item in history|reverse %}
+        <div class="chat-msg patient">
+          <div class="msg-content">{{ item.prompt }}</div>
+          <div class="msg-time">{{ item.created_at.strftime('%d %b, %H:%M') }}</div>
+        </div>
+        <div class="chat-msg assistant">
+          <div class="msg-avatar">AI</div>
+          <div class="msg-content">
+            {{ item.response|replace('**','<strong>')|replace('**','</strong>')|safe }}
+          </div>
+        </div>
+        {% endfor %}
+      {% endif %}
+
+      {% if last_question is defined and last_question %}
+      <div id="typingIndicator" style="display:none" class="chat-msg assistant">
+        <div class="msg-avatar">AI</div>
+        <div class="msg-content"><div class="loading-dots"><span></span><span></span><span></span></div></div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Question Input -->
+    <form method="POST" action="{{ url_for('patient_ai_assistant') }}" class="chat-input-form" id="chatForm">
+      <textarea name="question" id="chatInput" placeholder="Ask about your health, medications, symptoms, or chronic disease management..." rows="3" required></textarea>
+      <button type="submit" class="btn-send" id="sendBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="2"/><polygon points="22 2 15 22 11 13 2 9 22 2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+      </button>
+    </form>
+
+    <p class="chat-disclaimer">⚠️ This AI provides health information only — not medical diagnosis. Always consult your doctor for clinical decisions.</p>
+  </div>
+
+  <div class="chat-sidebar">
+    <h4>Your Health Context</h4>
+    <div class="ctx-item"><strong>Condition</strong><span>{{ patient.primary_disease or 'Not set' }}</span></div>
+    {% set r = patient.latest_reading %}
+    {% if r %}
+    <div class="ctx-item"><strong>Last Reading</strong><span>{{ r.recorded_at.strftime('%d %b, %H:%M') }}</span></div>
+    <div class="ctx-item"><strong>Risk Level</strong><span class="risk-badge risk-{{ r.risk_level }}">{{ r.risk_level.upper() }}</span></div>
+    {% if r.blood_glucose %}<div class="ctx-item"><strong>Glucose</strong><span>{{ r.blood_glucose|int }} mg/dL</span></div>{% endif %}
+    {% if r.bp_systolic %}<div class="ctx-item"><strong>BP</strong><span>{{ r.bp_systolic|int }}/{{ r.bp_diastolic|int }} mmHg</span></div>{% endif %}
+    {% if r.heart_rate %}<div class="ctx-item"><strong>Heart Rate</strong><span>{{ r.heart_rate|int }} bpm</span></div>{% endif %}
+    {% else %}
+    <div class="ctx-empty">No readings yet. Log a health reading for better AI insights.</div>
+    {% endif %}
+    <hr style="border-color:#e2e8f0;margin:12px 0">
+    <h4>Active Medications</h4>
+    {% for m in patient.medications if m.is_active %}
+    <div class="ctx-med">💊 {{ m.name }} {{ m.dosage }}</div>
+    {% else %}
+    <div class="ctx-empty">No medications added.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function askSuggestion(btn) {
+  document.getElementById('chatInput').value = btn.textContent;
+  document.getElementById('chatForm').submit();
+}
+document.getElementById('chatForm').addEventListener('submit', function() {
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('sendBtn').innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+});
+// Auto scroll to bottom
+const msgs = document.getElementById('chatMessages');
+msgs.scrollTop = msgs.scrollHeight;
+</script>
+{% endblock %}

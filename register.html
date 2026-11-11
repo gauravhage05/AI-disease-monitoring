@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Register — GraniteCare AI{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block body %}
+<div class="auth-container">
+  <div class="auth-card auth-card-wide">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div class="auth-brand">GraniteCare AI</div>
+        <div class="auth-brand-sub">Create Your Account</div>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth_register') }}" class="auth-form">
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Full Name <span class="req">*</span></label>
+          <input type="text" name="full_name" required placeholder="John Smith">
+        </div>
+        <div class="form-group">
+          <label>Email Address <span class="req">*</span></label>
+          <input type="email" name="email" required placeholder="you@example.com">
+        </div>
+        <div class="form-group">
+          <label>Password <span class="req">*</span></label>
+          <input type="password" name="password" required placeholder="Min. 8 characters">
+        </div>
+        <div class="form-group">
+          <label>Confirm Password <span class="req">*</span></label>
+          <input type="password" name="confirm_password" required placeholder="Repeat password">
+        </div>
+        <div class="form-group">
+          <label>Account Type <span class="req">*</span></label>
+          <select name="role">
+            <option value="patient">Patient</option>
+            <option value="doctor">Doctor / Healthcare Provider</option>
+          </select>
+        </div>
+        <div class="form-group doctor-field" style="display:none">
+          <label>Specialization</label>
+          <input type="text" name="specialization" placeholder="e.g. Cardiologist">
+        </div>
+        <div class="form-group doctor-field" style="display:none">
+          <label>Hospital / Clinic</label>
+          <input type="text" name="hospital" placeholder="Hospital name">
+        </div>
+      </div>
+      <button type="submit" class="btn-primary btn-full">Create Account</button>
+    </form>
+
+    <p class="auth-link">Already have an account? <a href="{{ url_for('auth_login') }}">Sign In</a></p>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelector('[name=role]').addEventListener('change', function() {
+  const show = this.value === 'doctor';
+  document.querySelectorAll('.doctor-field').forEach(el => el.style.display = show ? '' : 'none');
+});
+</script>
+{% endblock %}

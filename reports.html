@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+{% block title %}Health Reports{% endblock %}
+{% block page_title %}Health Reports{% endblock %}
+{% block content %}
+<div class="page-card">
+  <div class="card-section-header"><h3>Download Your Health Report</h3></div>
+  <div class="report-info">
+    <div class="report-icon">📄</div>
+    <div>
+      <h4>Complete Health Report (PDF)</h4>
+      <p>Your report includes: Personal information, medical conditions, current medications, recent health readings, risk analysis, and an IBM Granite AI-generated health summary.</p>
+      <p class="report-note">⚠️ AI-generated content is informational only and does not replace professional medical advice.</p>
+      <a href="{{ url_for('api_pdf_report') }}" class="btn-primary" style="margin-top:12px;display:inline-block">
+        📥 Download PDF Report
+      </a>
+    </div>
+  </div>
+
+  {% set r = patient.latest_reading %}
+  {% if r %}
+  <div class="report-preview">
+    <h4>Report Preview</h4>
+    <div class="report-preview-grid">
+      <div><strong>Patient ID:</strong> {{ patient.patient_code }}</div>
+      <div><strong>Name:</strong> {{ current_user.full_name }}</div>
+      <div><strong>Age:</strong> {{ patient.age or 'N/A' }}</div>
+      <div><strong>Primary Condition:</strong> {{ patient.primary_disease or 'N/A' }}</div>
+      <div><strong>Latest Reading:</strong> {{ r.recorded_at.strftime('%d %B %Y') }}</div>
+      <div><strong>Risk Level:</strong> <span class="risk-badge risk-{{ r.risk_level }}">{{ r.risk_level.upper() if r.risk_level else 'N/A' }}</span></div>
+      <div><strong>Conditions:</strong> {{ patient.conditions|selectattr('is_active')|list|length }}</div>
+      <div><strong>Medications:</strong> {{ patient.medications|selectattr('is_active')|list|length }}</div>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state" style="margin-top:16px"><p>Log at least one health reading to generate a complete report.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

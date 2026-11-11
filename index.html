@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+{% set active_page = "patient" %}
+
+{% block content %}
+<div class="patient-container">
+
+    <!-- Patient Header -->
+    <div class="patient-header-card">
+        <div class="patient-info-left">
+            <div class="patient-avatar" id="patientAvatar">EV</div>
+            <div class="patient-details">
+                <h2 class="patient-name" id="patientName">Eleanor Vance</h2>
+                <div class="patient-meta">
+                    <span class="meta-text" id="patientMeta">62 yo Female</span>
+                    <span class="meta-sep">•</span>
+                    <div class="condition-tags" id="conditionTags">
+                        <span class="condition-tag blue">Type 2 Diabetes Mellitus</span>
+                        <span class="condition-tag teal">Essential Hypertension (Stage 2)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="patient-cohort-selector">
+            <label class="cohort-label">SELECT PATIENT COHORT</label>
+            <select class="cohort-select" id="patientSelect" onchange="switchPatient(this.value)">
+                {% for pid, p in patients.items() %}
+                <option value="{{ pid }}">{{ p.name }} ({{ p.conditions[0] }})</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Telemetry Feed -->
+    <div class="telemetry-section">
+        <div class="section-header">
+            <div class="section-title">
+                <span class="section-icon">📡</span>
+                <span>CONTINUOUS WEARABLE TELEMETRY FEED</span>
+            </div>
+            <div class="telemetry-status">
+                <span class="live-dot"></span>
+                <span class="live-label">Active Telemetry Sync</span>
+                <span class="live-time" id="liveTime">--:--:--</span>
+            </div>
+        </div>
+
+        <div class="vitals-grid">
+            <!-- Blood Glucose -->
+            <div class="vital-card" id="card-glucose">
+                <div class="vital-header">
+                    <div class="vital-icon glucose-icon">🔥</div>
+                    <span class="vital-name">Blood Glucose (CGM)</span>
+                    <span class="vital-badge optimal" id="badge-glucose">OPTIMAL</span>
+                </div>
+                <div class="vital-value">
+                    <span class="vital-number" id="val-glucose">118</span>
+                    <span class="vital-unit">mg/dL</span>
+                </div>
+                <div class="vital-footer">
+                    <span class="vital-target" id="target-glucose">Target: 70 - 140</span>
+                    <span class="vital-trend green" id="trend-glucose">Steady</span>
+                </div>
+            </div>
+
+            <!-- Blood Pressure -->
+            <div class="vital-card" id="card-bp">
+                <div class="vital-header">
+                    <div class="vital-icon bp-icon">🫀</div>
+                    <span class="vital-name">Blood Pressure</span>
+                    <span class="vital-badge normal" id="badge-bp">NORMAL</span>
+                </div>
+                <div class="vital-value bp-value">
+                    <span class="vital-number" id="val-bp">126/78</span>
+                    <span class="vital-unit">mmHg</span>
+                </div>
+                <div class="vital-footer">
+                    <span class="vital-target" id="map-bp">MAP: 94 mmHg</span>
+                    <span class="vital-target" id="target-bp">Target: &lt;130/80</span>
+                </div>
+            </div>
+
+            <!-- Heart Rate -->
+            <div class="vital-card" id="card-hr">
+                <div class="vital-header">
+                    <div class="vital-icon hr-icon">❤️</div>
+                    <span class="vital-name">Heart Rate</span>
+                    <span class="vital-badge normal" id="badge-hr">NORMAL</span>
+                </div>
+                <div class="vital-value">
+                    <span class="vital-number" id="val-hr">72</span>
+                    <span class="vital-unit">bpm</span>
+                </div>
+                <div class="vital-footer">
+                    <span class="vital-target" id="target-hr">Target: 60 - 90</span>
+                    <span class="vital-rhythm" id="rhythm-hr">
+                        <svg width="20" height="10" viewBox="0 0 40 20"><polyline points="0,10 8,10 10,2 12,18 14,10 22,10 24,5 26,15 28,10 40,10" fill="none" stroke="#22c55e" stroke-width="2"/></svg>
+                        Sinus
+                    </span>
+                </div>
+            </div>
+
+            <!-- Pulse Oximetry -->
+            <div class="vital-card" id="card-spo2">
+                <div class="vital-header">
+                    <div class="vital-icon spo2-icon">🫁</div>
+                    <span class="vital-name">Pulse Oximetry</span>
+                    <span class="vital-badge normal" id="badge-spo2">NORMAL</span>
+                </div>
+                <div class="vital-value">
+                    <span class="vital-number" id="val-spo2">98</span>
+                    <span class="vital-unit">% SpO2</span>
+                </div>
+                <div class="vital-footer">
+                    <span class="vital-target" id="target-spo2">Target: ≥ 95%</span>
+                    <span class="vital-trend green" id="label-spo2">Adequate</span>
+                </div>
+            </div>
+
+            <!-- Activity & Weight -->
+            <div class="vital-card" id="card-activity">
+                <div class="vital-header">
+                    <div class="vital-icon activity-icon">🚶</div>
+                    <span class="vital-name">Activity &amp; Weight</span>
+                    <span class="vital-badge wearable" id="badge-activity">WEARABLE</span>
+                </div>
+                <div class="vital-value">
+                    <span class="vital-number" id="val-weight">164.2</span>
+                    <span class="vital-unit">lbs</span>
+                </div>
+                <div class="vital-footer">
+                    <span class="vital-target">Steps: <strong id="val-steps">4,820</strong></span>
+                    <span class="vital-trend green">Sync: OK</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Status Bar -->
+    <div class="ai-status-bar" id="aiStatusBar">
+        <div class="status-indicator stable" id="statusIndicator">
+            <div class="status-shield">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" fill="#16a34a" stroke="#16a34a" stroke-width="1"/>
+                    <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="status-text-block">
+                <span class="status-badge-label" id="statusLabel">STABLE BASELINE</span>
+                <span class="status-desc" id="statusDesc">Chronic Disease Monitoring: Parameters in Target Range</span>
+                <span class="status-sub">Continuous predictive analysis running on IBM Granite 3.0 Foundation Models</span>
+            </div>
+        </div>
+        <div class="risk-index-block">
+            <div class="risk-label">COMPOSITE RISK INDEX</div>
+            <div class="risk-score-display">
+                <span class="risk-number" id="riskScore">0</span>
+                <span class="risk-max">/100</span>
+            </div>
+            <div class="risk-bar-container">
+                <div class="risk-bar" id="riskBar" style="width:2%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- IBM Granite AI Insight Panel -->
+    <div class="ai-insight-panel">
+        <div class="insight-header">
+            <div class="insight-title-group">
+                <div class="ibm-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="9" height="9" rx="1" fill="#1d4ed8"/><rect x="13" y="2" width="9" height="9" rx="1" fill="#1d4ed8"/><rect x="2" y="13" width="9" height="9" rx="1" fill="#1d4ed8"/><rect x="13" y="13" width="9" height="9" rx="1" fill="#1d4ed8"/></svg>
+                </div>
+                <span class="insight-title">IBM Granite Clinical Insight &amp; Lifestyle Guidance</span>
+                <span class="model-badge">granite-3.0-8b-instruct</span>
+            </div>
+            <button class="re-evaluate-btn" id="reEvaluateBtn" onclick="fetchAIInsight()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><polyline points="23 4 23 10 17 10" stroke="currentColor" stroke-width="2"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                Re-evaluate
+            </button>
+        </div>
+        <div class="insight-content" id="insightContent">
+            <div class="insight-loading">
+                <div class="loading-dots"><span></span><span></span><span></span></div>
+                <span>Analyzing patient data with IBM Granite 3.0...</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const PATIENTS = {{ patients | tojson }};
+    let currentPatientId = "P101";
+    let telemetryInterval = null;
+    let currentTelemetry = {};
+
+    function switchPatient(patientId) {
+        currentPatientId = patientId;
+        const p = PATIENTS[patientId];
+        if (!p) return;
+
+        document.getElementById("patientAvatar").textContent = p.avatar_initials;
+        document.getElementById("patientName").textContent = p.name;
+        document.getElementById("patientMeta").textContent = `${p.age} yo ${p.gender}`;
+
+        const tagColors = ["blue", "teal", "purple", "orange"];
+        const tagsHtml = p.conditions.map((c, i) =>
+            `<span class="condition-tag ${tagColors[i % tagColors.length]}">${c}</span>`
+        ).join("");
+        document.getElementById("conditionTags").innerHTML = tagsHtml;
+
+        fetchTelemetry();
+        fetchAIInsight();
+    }
+
+    function updateVitalCard(id, badge, className) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.className = "vital-badge " + className;
+        el.textContent = badge;
+    }
+
+    function statusClass(status) {
+        const map = { "OPTIMAL": "optimal", "NORMAL": "normal", "ELEVATED": "elevated", "HIGH": "high", "LOW": "low", "WEARABLE": "wearable" };
+        return map[status] || "normal";
+    }
+
+    function fetchTelemetry() {
+        fetch(`/api/telemetry/${currentPatientId}`)
+            .then(r => r.json())
+            .then(data => {
+                currentTelemetry = data;
+
+                document.getElementById("val-glucose").textContent = data.glucose.value;
+                document.getElementById("badge-glucose").textContent = data.glucose.status;
+                document.getElementById("badge-glucose").className = "vital-badge " + statusClass(data.glucose.status);
+                document.getElementById("target-glucose").textContent = `Target: ${data.glucose.target}`;
+
+                document.getElementById("val-bp").textContent = `${data.bp.systolic}/${data.bp.diastolic}`;
+                document.getElementById("badge-bp").textContent = data.bp.status;
+                document.getElementById("badge-bp").className = "vital-badge " + statusClass(data.bp.status);
+                document.getElementById("map-bp").textContent = `MAP: ${data.bp.map} mmHg`;
+
+                document.getElementById("val-hr").textContent = data.heart_rate.value;
+                document.getElementById("badge-hr").textContent = data.heart_rate.status;
+                document.getElementById("badge-hr").className = "vital-badge " + statusClass(data.heart_rate.status);
+                document.getElementById("rhythm-hr").innerHTML = `<svg width="20" height="10" viewBox="0 0 40 20"><polyline points="0,10 8,10 10,2 12,18 14,10 22,10 24,5 26,15 28,10 40,10" fill="none" stroke="#22c55e" stroke-width="2"/></svg> ${data.heart_rate.rhythm}`;
+
+                document.getElementById("val-spo2").textContent = data.spo2.value;
+                document.getElementById("badge-spo2").textContent = data.spo2.status;
+                document.getElementById("badge-spo2").className = "vital-badge " + statusClass(data.spo2.status);
+
+                document.getElementById("val-weight").textContent = data.activity.weight;
+                document.getElementById("val-steps").textContent = data.activity.steps.toLocaleString();
+
+                document.getElementById("liveTime").textContent = data.timestamp;
+
+                // Update risk score
+                const risk = data.risk_score;
+                document.getElementById("riskScore").textContent = risk;
+                document.getElementById("riskBar").style.width = Math.max(risk, 2) + "%";
+
+                const riskBar = document.getElementById("riskBar");
+                if (risk < 20) riskBar.className = "risk-bar green";
+                else if (risk < 50) riskBar.className = "risk-bar yellow";
+                else riskBar.className = "risk-bar red";
+
+                // Update status bar
+                const statusBar = document.getElementById("aiStatusBar");
+                const statusLabel = document.getElementById("statusLabel");
+                const statusDesc = document.getElementById("statusDesc");
+                const indicator = document.getElementById("statusIndicator");
+
+                if (risk < 20) {
+                    statusLabel.textContent = "STABLE BASELINE";
+                    statusDesc.textContent = "Chronic Disease Monitoring: Parameters in Target Range";
+                    indicator.className = "status-indicator stable";
+                    indicator.querySelector(".status-shield svg path:first-child").setAttribute("fill", "#16a34a");
+                } else if (risk < 50) {
+                    statusLabel.textContent = "MODERATE ALERT";
+                    statusDesc.textContent = "Some Biomarkers Deviating — Monitoring Intensified";
+                    indicator.className = "status-indicator warning";
+                } else {
+                    statusLabel.textContent = "HIGH RISK ALERT";
+                    statusDesc.textContent = "Critical Biomarkers Out of Range — Immediate Review Required";
+                    indicator.className = "status-indicator critical";
+                }
+            })
+            .catch(err => console.error("Telemetry error:", err));
+    }
+
+    function fetchAIInsight() {
+        const btn = document.getElementById("reEvaluateBtn");
+        btn.disabled = true;
+        document.getElementById("insightContent").innerHTML = `
+            <div class="insight-loading">
+                <div class="loading-dots"><span></span><span></span><span></span></div>
+                <span>Analyzing with IBM Granite 3.0 Foundation Model...</span>
+            </div>`;
+
+        fetch("/api/ai_insight", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ patient_id: currentPatientId, telemetry: currentTelemetry })
+        })
+        .then(r => r.json())
+        .then(data => {
+            const formatted = data.insight
+                .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                .replace(/\n• /g, "</p><p class='insight-bullet'>• ")
+                .replace(/\n\n/g, "</p><p>")
+                .replace(/\n/g, "<br>");
+
+            document.getElementById("insightContent").innerHTML = `
+                <div class="insight-status-dot"></div>
+                <div class="insight-text"><p>${formatted}</p></div>`;
+            btn.disabled = false;
+        })
+        .catch(err => {
+            document.getElementById("insightContent").innerHTML = `<p class="insight-error">⚠️ Unable to reach IBM WatsonX. Check network connection.</p>`;
+            btn.disabled = false;
+        });
+    }
+
+    // Auto-refresh telemetry every 10 seconds
+    function startTelemetry() {
+        fetchTelemetry();
+        setTimeout(() => fetchAIInsight(), 1000);
+        telemetryInterval = setInterval(fetchTelemetry, 10000);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        startTelemetry();
+        document.getElementById("settingsBtn").addEventListener("click", () => {
+            document.getElementById("settingsModal").style.display = "flex";
+        });
+        document.getElementById("settingsModal").addEventListener("click", (e) => {
+            if (e.target.id === "settingsModal") e.target.style.display = "none";
+        });
+        document.getElementById("downloadZipBtn").addEventListener("click", (e) => {
+            e.preventDefault();
+            alert("GraniteCare AI v1.0\n\nProject files:\n• app.py\n• templates/\n• static/\n• requirements.txt\n\nRunning on IBM Granite 3.0 via IBM WatsonX");
+        });
+        document.getElementById("graniteEngineBtn").addEventListener("click", (e) => {
+            e.preventDefault();
+            fetchAIInsight();
+        });
+    });
+</script>
+{% endblock %}

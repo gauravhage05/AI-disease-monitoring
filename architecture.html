@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% set active_page = "arch" %}
+
+{% block content %}
+<div class="arch-container">
+    <div class="page-title-bar">
+        <h1 class="page-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="7" height="7" rx="1" stroke="#3b82f6" stroke-width="2"/><rect x="15" y="3" width="7" height="7" rx="1" stroke="#3b82f6" stroke-width="2"/><rect x="9" y="14" width="7" height="7" rx="1" stroke="#3b82f6" stroke-width="2"/><path d="M5.5 10v4h13v-4M12 14v-4" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/></svg>
+            IBM Cloud Architecture
+        </h1>
+        <p class="page-subtitle">End-to-end technical architecture of the GraniteCare AI platform built on IBM Cloud Lite services.</p>
+    </div>
+
+    <!-- Architecture Diagram -->
+    <div class="arch-diagram-card">
+        <div class="arch-diagram">
+            <!-- Layer 1: Data Sources -->
+            <div class="arch-layer">
+                <div class="arch-layer-title">DATA SOURCES</div>
+                <div class="arch-nodes">
+                    <div class="arch-node sensor">
+                        <div class="arch-node-icon">⌚</div>
+                        <div class="arch-node-label">Wearable Devices<br><small>CGM, BP Monitor, Pulse Ox</small></div>
+                    </div>
+                    <div class="arch-node ehr">
+                        <div class="arch-node-icon">📋</div>
+                        <div class="arch-node-label">EHR / FHIR<br><small>Patient Medical Records</small></div>
+                    </div>
+                    <div class="arch-node patient">
+                        <div class="arch-node-icon">👤</div>
+                        <div class="arch-node-label">Patient Input<br><small>Symptoms, Medications</small></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="arch-arrow-row">
+                <div class="arch-arrow">↓ Secure Telemetry Stream</div>
+            </div>
+
+            <!-- Layer 2: IBM Cloud -->
+            <div class="arch-layer ibm-cloud-layer">
+                <div class="arch-layer-title ibm-blue">IBM CLOUD LITE SERVICES</div>
+                <div class="arch-nodes">
+                    <div class="arch-node ibm-service">
+                        <div class="arch-node-icon">🤖</div>
+                        <div class="arch-node-label"><strong>IBM WatsonX.ai</strong><br><small>Granite 3.0-8b-instruct</small></div>
+                        <span class="ibm-badge">Foundation Model</span>
+                    </div>
+                    <div class="arch-node ibm-service">
+                        <div class="arch-node-icon">🗄️</div>
+                        <div class="arch-node-label"><strong>IBM Cloudant</strong><br><small>Patient Data Store</small></div>
+                        <span class="ibm-badge">NoSQL DB</span>
+                    </div>
+                    <div class="arch-node ibm-service">
+                        <div class="arch-node-icon">🔐</div>
+                        <div class="arch-node-label"><strong>IBM IAM</strong><br><small>Identity & Access Mgmt</small></div>
+                        <span class="ibm-badge">Security</span>
+                    </div>
+                    <div class="arch-node ibm-service">
+                        <div class="arch-node-icon">📊</div>
+                        <div class="arch-node-label"><strong>IBM Watson Studio</strong><br><small>Model Training & Ops</small></div>
+                        <span class="ibm-badge">MLOps</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="arch-arrow-row">
+                <div class="arch-arrow">↓ REST API / JSON Responses</div>
+            </div>
+
+            <!-- Layer 3: Application -->
+            <div class="arch-layer">
+                <div class="arch-layer-title">APPLICATION LAYER</div>
+                <div class="arch-nodes">
+                    <div class="arch-node app">
+                        <div class="arch-node-icon">🐍</div>
+                        <div class="arch-node-label">Flask Backend<br><small>Python 3.x · REST API</small></div>
+                    </div>
+                    <div class="arch-node app">
+                        <div class="arch-node-icon">⚡</div>
+                        <div class="arch-node-label">Real-time Engine<br><small>Telemetry Simulation</small></div>
+                    </div>
+                    <div class="arch-node app">
+                        <div class="arch-node-icon">🔮</div>
+                        <div class="arch-node-label">Risk Scoring<br><small>Composite Index Algorithm</small></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="arch-arrow-row">
+                <div class="arch-arrow">↓ HTML / CSS / JavaScript</div>
+            </div>
+
+            <!-- Layer 4: Frontend -->
+            <div class="arch-layer">
+                <div class="arch-layer-title">FRONTEND (UI)</div>
+                <div class="arch-nodes">
+                    <div class="arch-node frontend">
+                        <div class="arch-node-icon">👥</div>
+                        <div class="arch-node-label">Patient Companion<br><small>Wearable Dashboard</small></div>
+                    </div>
+                    <div class="arch-node frontend">
+                        <div class="arch-node-icon">🏥</div>
+                        <div class="arch-node-label">Clinician Portal<br><small>Triage & Risk View</small></div>
+                    </div>
+                    <div class="arch-node frontend">
+                        <div class="arch-node-icon">📱</div>
+                        <div class="arch-node-label">Responsive UI<br><small>Mobile + Desktop</small></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tech Stack Cards -->
+    <div class="tech-grid">
+        <div class="tech-card">
+            <div class="tech-card-header ibm-bg">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><rect x="2" y="2" width="9" height="9" rx="1" fill="white"/><rect x="13" y="2" width="9" height="9" rx="1" fill="white"/><rect x="2" y="13" width="9" height="9" rx="1" fill="white"/><rect x="13" y="13" width="9" height="9" rx="1" fill="white"/></svg>
+                IBM WatsonX.ai
+            </div>
+            <div class="tech-card-body">
+                <div class="tech-row"><span class="tech-key">Model</span><span class="tech-val">granite-3.0-8b-instruct</span></div>
+                <div class="tech-row"><span class="tech-key">Task</span><span class="tech-val">Clinical Insight Generation</span></div>
+                <div class="tech-row"><span class="tech-key">Region</span><span class="tech-val">us-south</span></div>
+                <div class="tech-row"><span class="tech-key">Tokens</span><span class="tech-val">400 max / request</span></div>
+                <div class="tech-row"><span class="tech-key">Auth</span><span class="tech-val">IBM IAM API Key</span></div>
+            </div>
+        </div>
+
+        <div class="tech-card">
+            <div class="tech-card-header green-bg">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" stroke-width="2"/></svg>
+                Backend Stack
+            </div>
+            <div class="tech-card-body">
+                <div class="tech-row"><span class="tech-key">Language</span><span class="tech-val">Python 3.x</span></div>
+                <div class="tech-row"><span class="tech-key">Framework</span><span class="tech-val">Flask 3.x</span></div>
+                <div class="tech-row"><span class="tech-key">HTTP Client</span><span class="tech-val">Requests</span></div>
+                <div class="tech-row"><span class="tech-key">Port</span><span class="tech-val">5000 (localhost)</span></div>
+                <div class="tech-row"><span class="tech-key">Template</span><span class="tech-val">Jinja2</span></div>
+            </div>
+        </div>
+
+        <div class="tech-card">
+            <div class="tech-card-header purple-bg">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="white" stroke-width="2"/><path d="M12 8v4l3 3" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+                Monitoring
+            </div>
+            <div class="tech-card-body">
+                <div class="tech-row"><span class="tech-key">Telemetry</span><span class="tech-val">10s refresh cycle</span></div>
+                <div class="tech-row"><span class="tech-key">Diseases</span><span class="tech-val">Diabetes, HTN, CHF, AFib</span></div>
+                <div class="tech-row"><span class="tech-key">Metrics</span><span class="tech-val">Glucose, BP, HR, SpO2</span></div>
+                <div class="tech-row"><span class="tech-key">Risk Score</span><span class="tech-val">Composite 0–100 Index</span></div>
+                <div class="tech-row"><span class="tech-key">Alerts</span><span class="tech-val">Real-time threshold alerts</span></div>
+            </div>
+        </div>
+
+        <div class="tech-card">
+            <div class="tech-card-header orange-bg">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="white"/></svg>
+                Security & Compliance
+            </div>
+            <div class="tech-card-body">
+                <div class="tech-row"><span class="tech-key">Auth</span><span class="tech-val">IBM IAM OAuth 2.0</span></div>
+                <div class="tech-row"><span class="tech-key">Transport</span><span class="tech-val">HTTPS (TLS 1.3)</span></div>
+                <div class="tech-row"><span class="tech-key">Data</span><span class="tech-val">No PHI stored locally</span></div>
+                <div class="tech-row"><span class="tech-key">Standard</span><span class="tech-val">HIPAA-aligned design</span></div>
+                <div class="tech-row"><span class="tech-key">Token</span><span class="tech-val">JWT (3600s expiry)</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("settingsBtn").addEventListener("click", () => {
+            document.getElementById("settingsModal").style.display = "flex";
+        });
+        document.getElementById("settingsModal").addEventListener("click", (e) => {
+            if (e.target.id === "settingsModal") e.target.style.display = "none";
+        });
+    });
+</script>
+{% endblock %}

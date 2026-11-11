@@ -1,0 +1,127 @@
+{% extends "layout.html" %}
+{% block title %}Health History{% endblock %}
+{% block page_title %}Health History &amp; Trends{% endblock %}
+{% block content %}
+<div class="page-card">
+  <div class="card-section-header">
+    <h3>Health Trends</h3>
+    <div class="filter-row">
+      <a href="?days=7"  class="filter-btn {% if days=='7' %}active{% endif %}">7 days</a>
+      <a href="?days=30" class="filter-btn {% if days=='30' %}active{% endif %}">30 days</a>
+      <a href="?days=90" class="filter-btn {% if days=='90' %}active{% endif %}">90 days</a>
+      <a href="?days=all" class="filter-btn {% if days=='all' %}active{% endif %}">All</a>
+    </div>
+  </div>
+
+  {% if readings %}
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h4>Blood Glucose (mg/dL)</h4>
+      <canvas id="chartGlucose" height="120"></canvas>
+    </div>
+    <div class="chart-card">
+      <h4>Blood Pressure (mmHg)</h4>
+      <canvas id="chartBP" height="120"></canvas>
+    </div>
+    <div class="chart-card">
+      <h4>Heart Rate (bpm)</h4>
+      <canvas id="chartHR" height="120"></canvas>
+    </div>
+    <div class="chart-card">
+      <h4>SpO2 Oxygen Level (%)</h4>
+      <canvas id="chartSPO2" height="120"></canvas>
+    </div>
+    <div class="chart-card">
+      <h4>Weight (kg)</h4>
+      <canvas id="chartWeight" height="120"></canvas>
+    </div>
+    <div class="chart-card">
+      <h4>Risk Score (0–100)</h4>
+      <canvas id="chartRisk" height="120"></canvas>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state"><p>No readings found for this period. <a href="{{ url_for('patient_readings') }}">Log your first reading</a>.</p></div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+fetch('/api/patient/chart-data?days={{ days }}')
+  .then(r => r.json())
+  .then(data => {
+    function makeChart(id, label, dataKey, color, ymin, ymax) {
+      const ctx = document.getElementById(id);
+      if (!ctx) return;
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.labels,
+          datasets: [{ label: label, data: data[dataKey], borderColor: color,
+            backgroundColor: color + '15', tension: 0.4, fill: true, pointRadius: 3,
+            spanGaps: true }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { min: ymin, suggestedMax: ymax, grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', font:{size:10} } },
+            x: { grid: { display: false }, ticks: { color: '#94a3b8', font:{size:9}, maxTicksLimit: 6 } }
+          }
+        }
+      });
+    }
+    makeChart('chartGlucose', 'Glucose', 'glucose',   '#f59e0b', 50,  300);
+    makeChart('chartHR',      'HR',      'heart_rate','#ef4444', 40,  160);
+    makeChart('chartSPO2',    'SpO2',    'spo2',      '#3b82f6', 80,  100);
+    makeChart('chartWeight',  'Weight',  'weight',    '#8b5cf6', 30,  200);
+    const ctx = document.getElementById('chartBP');
+    if (ctx) {
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.labels,
+          datasets: [
+            { label: 'Systolic',  data: data.bp_systolic,  borderColor: '#ef4444', backgroundColor: '#ef444408', tension:0.4, fill:false, pointRadius:3, spanGaps:true },
+            { label: 'Diastolic', data: data.bp_diastolic, borderColor: '#f59e0b', backgroundColor: '#f59e0b08', tension:0.4, fill:false, pointRadius:3, spanGaps:true }
+          ]
+        },
+        options: { responsive:true, plugins:{legend:{position:'bottom',labels:{font:{size:11}}}},
+          scales: { y:{min:40,suggestedMax:200,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{size:10}}}, x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:6}} } }
+      });
+    }
+    const rCtx = document.getElementById('chartRisk');
+    const rData = Array.from({length: data.labels.length}, (_, i) => null); // placeholder
+    fetch('/api/patient/chart-data?days={{ days }}').then(r2 => r2.json()).then(d => {
+      if (rCtx) {
+        new Chart(rCtx, {
+          type: 'bar',
+          data: {
+            labels: data.labels,
+            datasets: [{
+              label: 'Risk Score', data: data.glucose.map((g,i) => {
+                let s = 0;
+                if (g) { if(g>300)s+=40; else if(g>140)s+=15; else if(g<70)s+=25; }
+                if (data.bp_systolic[i]) { if(data.bp_systolic[i]>=180)s+=40; else if(data.bp_systolic[i]>=160)s+=25; else if(data.bp_systolic[i]>=140)s+=12; }
+                if (data.spo2[i] && data.spo2[i]<95) s+=20;
+                return Math.min(s,100);
+              }),
+              backgroundColor: (ctx) => {
+                const v = ctx.parsed.y;
+                return v >= 50 ? '#fee2e2' : v >= 30 ? '#fef3c7' : '#dcfce7';
+              },
+              borderColor: (ctx) => {
+                const v = ctx.parsed.y;
+                return v >= 50 ? '#ef4444' : v >= 30 ? '#f59e0b' : '#22c55e';
+              },
+              borderWidth: 1
+            }]
+          },
+          options: { responsive:true, plugins:{legend:{display:false}}, scales:{y:{min:0,max:100,grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{size:10}}},x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:6}}}}
+        });
+      }
+    });
+  });
+</script>
+{% endblock %}

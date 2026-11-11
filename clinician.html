@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% set active_page = "clinician" %}
+
+{% block content %}
+<div class="clinician-container">
+    <div class="page-title-bar">
+        <h1 class="page-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Clinician Triage Portal
+        </h1>
+        <p class="page-subtitle">AI-powered patient monitoring dashboard for healthcare providers. Real-time risk stratification via IBM Granite 3.0.</p>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-number blue">{{ patients|length }}</div>
+            <div class="stat-label">Active Patients</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number green">2</div>
+            <div class="stat-label">Stable</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number yellow">1</div>
+            <div class="stat-label">Moderate Alert</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number red">1</div>
+            <div class="stat-label">High Risk</div>
+        </div>
+    </div>
+
+    <!-- Patient Triage Cards -->
+    <div class="triage-grid" id="triageGrid">
+        {% for pid, p in patients.items() %}
+        <div class="triage-card" id="triage-{{ pid }}" data-patient-id="{{ pid }}">
+            <div class="triage-card-header">
+                <div class="triage-avatar">{{ p.avatar_initials }}</div>
+                <div class="triage-patient-info">
+                    <div class="triage-name">{{ p.name }}</div>
+                    <div class="triage-meta">{{ p.age }} yo {{ p.gender }} · ID: {{ p.id }}</div>
+                </div>
+                <div class="triage-risk-badge" id="risk-badge-{{ pid }}">
+                    <span class="risk-num" id="risk-num-{{ pid }}">--</span>
+                    <span class="risk-label-sm">/100</span>
+                </div>
+            </div>
+            <div class="triage-conditions">
+                {% for c in p.conditions %}
+                <span class="condition-chip">{{ c }}</span>
+                {% endfor %}
+            </div>
+            <div class="triage-vitals" id="triage-vitals-{{ pid }}">
+                <div class="triage-vital-row">
+                    <span class="tv-label">🔥 Glucose</span>
+                    <span class="tv-value" id="tv-glucose-{{ pid }}">--</span>
+                    <span class="tv-status" id="tv-g-status-{{ pid }}">--</span>
+                </div>
+                <div class="triage-vital-row">
+                    <span class="tv-label">🫀 BP</span>
+                    <span class="tv-value" id="tv-bp-{{ pid }}">--/--</span>
+                    <span class="tv-status" id="tv-bp-status-{{ pid }}">--</span>
+                </div>
+                <div class="triage-vital-row">
+                    <span class="tv-label">❤️ HR</span>
+                    <span class="tv-value" id="tv-hr-{{ pid }}">--</span>
+                    <span class="tv-status" id="tv-hr-status-{{ pid }}">--</span>
+                </div>
+                <div class="triage-vital-row">
+                    <span class="tv-label">🫁 SpO2</span>
+                    <span class="tv-value" id="tv-spo2-{{ pid }}">--</span>
+                    <span class="tv-status" id="tv-spo2-status-{{ pid }}">--</span>
+                </div>
+            </div>
+            <div class="triage-actions">
+                <a href="/?patient={{ pid }}" class="triage-btn primary">View Full Profile</a>
+                <button class="triage-btn secondary" onclick="generateClinicianNote('{{ pid }}')">AI Note</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- AI Clinician Note Modal -->
+    <div id="clinicianNoteModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box large">
+            <div class="modal-header">
+                <h3>IBM Granite AI Clinician Note</h3>
+                <button onclick="document.getElementById('clinicianNoteModal').style.display='none'" class="modal-close">✕</button>
+            </div>
+            <div class="modal-body" id="clinicianNoteBody">
+                <div class="insight-loading"><div class="loading-dots"><span></span><span></span><span></span></div></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const PATIENTS = {{ patients | tojson }};
+
+    function statusClass(s) {
+        const map = { "OPTIMAL":"optimal","NORMAL":"normal","ELEVATED":"elevated","HIGH":"high","LOW":"low" };
+        return map[s] || "normal";
+    }
+
+    function loadTriageData(pid) {
+        fetch(`/api/telemetry/${pid}`)
+            .then(r => r.json())
+            .then(data => {
+                const risk = data.risk_score;
+                const badge = document.getElementById(`risk-badge-${pid}`);
+                const num = document.getElementById(`risk-num-${pid}`);
+                if (badge && num) {
+                    num.textContent = risk;
+                    if (risk < 20) badge.className = "triage-risk-badge green";
+                    else if (risk < 50) badge.className = "triage-risk-badge yellow";
+                    else badge.className = "triage-risk-badge red";
+
+                    const card = document.getElementById(`triage-${pid}`);
+                    if (card) {
+                        card.classList.remove("card-stable","card-warning","card-critical");
+                        if (risk < 20) card.classList.add("card-stable");
+                        else if (risk < 50) card.classList.add("card-warning");
+                        else card.classList.add("card-critical");
+                    }
+                }
+
+                const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+                set(`tv-glucose-${pid}`, data.glucose.value + " mg/dL");
+                set(`tv-g-status-${pid}`, data.glucose.status);
+                document.getElementById(`tv-g-status-${pid}`).className = "tv-status badge-sm " + statusClass(data.glucose.status);
+
+                set(`tv-bp-${pid}`, `${data.bp.systolic}/${data.bp.diastolic} mmHg`);
+                set(`tv-bp-status-${pid}`, data.bp.status);
+                document.getElementById(`tv-bp-status-${pid}`).className = "tv-status badge-sm " + statusClass(data.bp.status);
+
+                set(`tv-hr-${pid}`, data.heart_rate.value + " bpm");
+                set(`tv-hr-status-${pid}`, data.heart_rate.status);
+                document.getElementById(`tv-hr-status-${pid}`).className = "tv-status badge-sm " + statusClass(data.heart_rate.status);
+
+                set(`tv-spo2-${pid}`, data.spo2.value + "%");
+                set(`tv-spo2-status-${pid}`, data.spo2.status);
+                document.getElementById(`tv-spo2-status-${pid}`).className = "tv-status badge-sm " + statusClass(data.spo2.status);
+            });
+    }
+
+    function generateClinicianNote(pid) {
+        const modal = document.getElementById("clinicianNoteModal");
+        const body = document.getElementById("clinicianNoteBody");
+        modal.style.display = "flex";
+        body.innerHTML = `<div class="insight-loading"><div class="loading-dots"><span></span><span></span><span></span></div><span>Generating clinical note via IBM Granite 3.0...</span></div>`;
+
+        fetch(`/api/telemetry/${pid}`)
+            .then(r => r.json())
+            .then(telemetry => {
+                return fetch("/api/ai_insight", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ patient_id: pid, telemetry: telemetry })
+                });
+            })
+            .then(r => r.json())
+            .then(data => {
+                const formatted = data.insight
+                    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                    .replace(/\n• /g, "</p><p class='insight-bullet'>• ")
+                    .replace(/\n\n/g, "</p><p>")
+                    .replace(/\n/g, "<br>");
+                body.innerHTML = `<div class="insight-text"><p>${formatted}</p></div>`;
+            })
+            .catch(() => {
+                body.innerHTML = `<p class="insight-error">⚠️ Unable to reach IBM WatsonX. Please try again.</p>`;
+            });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        Object.keys(PATIENTS).forEach(pid => loadTriageData(pid));
+        setInterval(() => Object.keys(PATIENTS).forEach(pid => loadTriageData(pid)), 15000);
+
+        document.getElementById("clinicianNoteModal").addEventListener("click", (e) => {
+            if (e.target.id === "clinicianNoteModal") e.target.style.display = "none";
+        });
+        document.getElementById("settingsBtn").addEventListener("click", () => {
+            document.getElementById("settingsModal").style.display = "flex";
+        });
+        document.getElementById("settingsModal").addEventListener("click", (e) => {
+            if (e.target.id === "settingsModal") e.target.style.display = "none";
+        });
+    });
+</script>
+{% endblock %}

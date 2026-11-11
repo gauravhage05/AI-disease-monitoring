@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+{% block title %}Notifications & Alerts{% endblock %}
+{% block page_title %}Health Alerts &amp; Notifications{% endblock %}
+{% block content %}
+<div class="page-card">
+  <div class="card-section-header">
+    <h3>Your Health Alerts ({{ alerts|length }})</h3>
+    <span class="badge-info">All alerts marked as read</span>
+  </div>
+  {% if alerts %}
+  <div class="alerts-list">
+    {% for a in alerts %}
+    <div class="alert-item alert-{{ a.severity }}">
+      <div class="alert-icon">
+        {% if a.severity == 'critical' %}🚨
+        {% elif a.severity == 'warning' %}⚠️
+        {% else %}ℹ️{% endif %}
+      </div>
+      <div class="alert-body">
+        <div class="alert-title">{{ a.title }}</div>
+        <div class="alert-desc">{{ a.description }}</div>
+        {% if a.recommended_action %}
+        <div class="alert-action">👉 <strong>Action:</strong> {{ a.recommended_action }}</div>
+        {% endif %}
+        <div class="alert-time">{{ a.created_at.strftime('%d %B %Y at %H:%M') }}</div>
+      </div>
+      <div class="alert-severity-badge sev-{{ a.severity }}">{{ a.severity.upper() }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <p>🎉 No alerts! Your health readings have been within normal ranges.</p>
+    <p><a href="{{ url_for('patient_readings') }}">Log a health reading</a> to start monitoring.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

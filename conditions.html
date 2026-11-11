@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+{% block title %}Medical Conditions{% endblock %}
+{% block page_title %}Medical Conditions{% endblock %}
+{% block content %}
+<div class="page-card">
+  <div class="card-section-header">
+    <h3>Add New Condition</h3>
+  </div>
+  <form method="POST" action="{{ url_for('patient_conditions') }}" class="profile-form">
+    <input type="hidden" name="action" value="add">
+    <div class="form-grid-3">
+      <div class="form-group span-2">
+        <label>Condition Name <span class="req">*</span></label>
+        <input type="text" name="name" required placeholder="e.g. Type 2 Diabetes Mellitus">
+      </div>
+      <div class="form-group">
+        <label>Diagnosed On</label>
+        <input type="date" name="diagnosed_on">
+      </div>
+      <div class="form-group span-3">
+        <label>Notes</label>
+        <textarea name="notes" rows="2" placeholder="Additional notes..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions"><button type="submit" class="btn-primary">Add Condition</button></div>
+  </form>
+</div>
+
+<div class="page-card" style="margin-top:16px">
+  <div class="card-section-header"><h3>Your Conditions ({{ patient.conditions|length }})</h3></div>
+  {% if patient.conditions %}
+  <div class="conditions-list">
+    {% for c in patient.conditions %}
+    <div class="condition-card {% if not c.is_active %}inactive{% endif %}">
+      <div class="cond-card-main">
+        <div class="cond-status-dot {% if c.is_active %}active{% else %}inactive{% endif %}"></div>
+        <div class="cond-card-info">
+          <div class="cond-name">{{ c.name }}</div>
+          {% if c.diagnosed_on %}<div class="cond-date">Diagnosed: {{ c.diagnosed_on.strftime('%B %Y') }}</div>{% endif %}
+          {% if c.notes %}<div class="cond-notes">{{ c.notes }}</div>{% endif %}
+        </div>
+      </div>
+      <form method="POST" style="margin:0">
+        <input type="hidden" name="action" value="toggle">
+        <input type="hidden" name="condition_id" value="{{ c.id }}">
+        <button type="submit" class="btn-toggle {% if c.is_active %}btn-deactivate{% else %}btn-activate{% endif %}">
+          {{ 'Mark Inactive' if c.is_active else 'Mark Active' }}
+        </button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><p>No conditions added yet. Add your chronic conditions above.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

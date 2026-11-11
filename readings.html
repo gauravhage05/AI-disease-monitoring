@@ -1,0 +1,204 @@
+{% extends "layout.html" %}
+{% block title %}Log Health Reading{% endblock %}
+{% block page_title %}Log Health Reading{% endblock %}
+{% block content %}
+
+<!-- Entry Form -->
+<div class="page-card">
+  <div class="card-section-header">
+    <h3>New Health Reading</h3>
+    <span class="badge-info">All fields optional — enter what you measured</span>
+  </div>
+  <form method="POST" action="{{ url_for('patient_readings') }}" class="profile-form" id="readingForm">
+
+    <div class="form-section-title">Cardiovascular</div>
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label>Heart Rate (bpm)</label>
+        <input type="number" name="heart_rate" min="20" max="300" placeholder="e.g. 72">
+      </div>
+      <div class="form-group">
+        <label>Systolic BP (mmHg)</label>
+        <input type="number" name="bp_systolic" min="50" max="300" placeholder="e.g. 120">
+      </div>
+      <div class="form-group">
+        <label>Diastolic BP (mmHg)</label>
+        <input type="number" name="bp_diastolic" min="30" max="200" placeholder="e.g. 80">
+      </div>
+      <div class="form-group">
+        <label>Oxygen Saturation SpO2 (%)</label>
+        <input type="number" name="spo2" min="50" max="100" step="0.1" placeholder="e.g. 98">
+      </div>
+      <div class="form-group">
+        <label>Respiratory Rate (breaths/min)</label>
+        <input type="number" name="respiratory_rate" min="5" max="60" placeholder="e.g. 16">
+      </div>
+      <div class="form-group">
+        <label>Body Temperature (°C)</label>
+        <input type="number" name="temperature" min="32" max="43" step="0.1" placeholder="e.g. 36.6">
+      </div>
+    </div>
+
+    <div class="form-section-title">Blood Glucose</div>
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label>Blood Glucose (mg/dL)</label>
+        <input type="number" name="blood_glucose" min="10" max="700" placeholder="e.g. 105">
+      </div>
+      <div class="form-group">
+        <label>Measurement Type</label>
+        <select name="glucose_type">
+          <option value="random">Random</option>
+          <option value="fasting">Fasting (before meal)</option>
+          <option value="post_meal">Post-meal (2 hrs after)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>HbA1c (%)</label>
+        <input type="number" name="hba1c" min="3" max="20" step="0.1" placeholder="e.g. 6.5">
+      </div>
+      <div class="form-group">
+        <label>Total Cholesterol (mg/dL)</label>
+        <input type="number" name="cholesterol" min="50" max="600" placeholder="e.g. 180">
+      </div>
+    </div>
+
+    <div class="form-section-title">Body Measurements</div>
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label>Weight (kg)</label>
+        <input type="number" name="weight_kg" min="10" max="300" step="0.1" placeholder="{{ patient.weight_kg or 'e.g. 70' }}">
+      </div>
+      <div class="form-group">
+        <label>Height (cm)</label>
+        <input type="number" name="height_cm" min="50" max="250" step="0.1" placeholder="{{ patient.height_cm or 'e.g. 170' }}">
+      </div>
+      <div class="form-group">
+        <label>BMI (auto-calculated)</label>
+        <input type="text" id="bmiDisplay" disabled placeholder="Enter weight and height">
+      </div>
+    </div>
+
+    <div class="form-section-title">Lifestyle & Symptoms</div>
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label>Physical Activity</label>
+        <select name="physical_activity">
+          <option value="">Select</option>
+          <option value="sedentary">Sedentary (no activity)</option>
+          <option value="light">Light (walking, stretching)</option>
+          <option value="moderate">Moderate (30 min exercise)</option>
+          <option value="vigorous">Vigorous (intense workout)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Sleep Duration (hours)</label>
+        <input type="number" name="sleep_hours" min="0" max="24" step="0.5" placeholder="e.g. 7">
+      </div>
+      <div class="form-group">
+        <label>Water Intake (ml)</label>
+        <input type="number" name="water_intake_ml" min="0" max="10000" placeholder="e.g. 2000">
+      </div>
+      <div class="form-group">
+        <label>Medication Taken Today?</label>
+        <select name="medication_taken">
+          <option value="yes">Yes — taken as prescribed</option>
+          <option value="no">No — missed dose</option>
+          <option value="">Not applicable</option>
+        </select>
+      </div>
+      <div class="form-group span-2">
+        <label>Symptoms (if any)</label>
+        <input type="text" name="symptoms" placeholder="e.g. chest pain, dizziness, shortness of breath, headache">
+        <small class="field-hint">⚠️ For chest pain or breathing difficulty, please seek immediate medical attention.</small>
+      </div>
+      <div class="form-group span-3">
+        <label>Notes</label>
+        <textarea name="notes" rows="2" placeholder="Any additional observations..."></textarea>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">Save Reading</button>
+      <a href="{{ url_for('patient_dashboard') }}" class="btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<!-- Previous Readings Table -->
+<div class="page-card" style="margin-top:20px">
+  <div class="card-section-header">
+    <h3>Reading History</h3>
+    <div class="filter-row">
+      <a href="?days=7" class="filter-btn {% if filter_days=='7' %}active{% endif %}">7 days</a>
+      <a href="?days=30" class="filter-btn {% if filter_days=='30' %}active{% endif %}">30 days</a>
+      <a href="?days=90" class="filter-btn {% if filter_days=='90' %}active{% endif %}">90 days</a>
+      <a href="?days=all" class="filter-btn {% if filter_days=='all' %}active{% endif %}">All</a>
+    </div>
+  </div>
+  {% if readings.items %}
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr><th>Date &amp; Time</th><th>HR</th><th>BP</th><th>Glucose</th><th>SpO2</th><th>Temp</th><th>Weight</th><th>BMI</th><th>Risk</th></tr>
+      </thead>
+      <tbody>
+        {% for r in readings.items %}
+        <tr class="row-{{ r.risk_level }}">
+          <td>{{ r.recorded_at.strftime('%d %b %Y, %H:%M') }}</td>
+          <td>{{ r.heart_rate|int ~ ' bpm' if r.heart_rate else '-' }}</td>
+          <td>{% if r.bp_systolic %}{{ r.bp_systolic|int }}/{{ r.bp_diastolic|int }}{% else %}-{% endif %}</td>
+          <td>{{ r.blood_glucose|int ~ ' mg/dL' if r.blood_glucose else '-' }}</td>
+          <td>{{ r.spo2 ~ '%' if r.spo2 else '-' }}</td>
+          <td>{{ r.temperature ~ '°C' if r.temperature else '-' }}</td>
+          <td>{{ r.weight_kg ~ ' kg' if r.weight_kg else '-' }}</td>
+          <td>{{ r.bmi or '-' }}</td>
+          <td><span class="risk-badge risk-{{ r.risk_level }}">{{ r.risk_level.upper() if r.risk_level else '-' }}</span></td>
+        </tr>
+        {% if r.symptoms %}
+        <tr class="symptoms-row"><td colspan="9">💬 <em>Symptoms: {{ r.symptoms }}</em></td></tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <!-- Pagination -->
+  <div class="pagination">
+    {% if readings.has_prev %}<a href="?page={{ readings.prev_num }}&days={{ filter_days }}" class="page-btn">← Prev</a>{% endif %}
+    <span>Page {{ readings.page }} / {{ readings.pages }}</span>
+    {% if readings.has_next %}<a href="?page={{ readings.next_num }}&days={{ filter_days }}" class="page-btn">Next →</a>{% endif %}
+  </div>
+  {% else %}
+  <div class="empty-state"><p>No readings in this period.</p></div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Live BMI calculation
+const wt = document.querySelector('[name=weight_kg]');
+const ht = document.querySelector('[name=height_cm]');
+const bmiDisp = document.getElementById('bmiDisplay');
+function calcBMI() {
+  const w = parseFloat(wt.value), h = parseFloat(ht.value)/100;
+  if (w > 0 && h > 0) { bmiDisp.value = (w/(h*h)).toFixed(1); }
+  else { bmiDisp.value = ''; }
+}
+if(wt && ht) { wt.addEventListener('input', calcBMI); ht.addEventListener('input', calcBMI); }
+
+// Critical symptom warning
+document.querySelector('[name=symptoms]').addEventListener('input', function() {
+  const v = this.value.toLowerCase();
+  if (/chest pain|crushing|breathless|difficulty breath/.test(v)) {
+    if (!document.getElementById('critWarn')) {
+      const w = document.createElement('div');
+      w.id = 'critWarn';
+      w.className = 'critical-symptom-warning';
+      w.innerHTML = '🚨 <strong>URGENT:</strong> You have reported a potentially serious symptom. If you are experiencing chest pain or severe breathing difficulty, please call emergency services (112/911) immediately. Do not delay.';
+      this.parentElement.appendChild(w);
+    }
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "layout.html" %}
+{% block title %}Patient: {{ patient.user.full_name }}{% endblock %}
+{% block page_title %}Patient: {{ patient.user.full_name }}{% endblock %}
+{% block content %}
+<div class="patient-detail-layout">
+
+  <!-- Left: Patient Info -->
+  <div class="patient-detail-left">
+    <div class="page-card">
+      <div class="ptd-header">
+        <div class="ptd-avatar">{{ patient.user.full_name[:2].upper() }}</div>
+        <div>
+          <h3>{{ patient.user.full_name }}</h3>
+          <div class="ptd-meta">{{ patient.age }} yo · {{ patient.gender }} · {{ patient.patient_code }}</div>
+          <div class="ptd-meta">{{ patient.primary_disease or 'No condition set' }}</div>
+        </div>
+      </div>
+
+      <div class="info-list">
+        <div class="info-row"><span>Blood Group</span><strong>{{ patient.blood_group or 'N/A' }}</strong></div>
+        <div class="info-row"><span>BMI</span><strong>{{ patient.bmi or 'N/A' }}</strong></div>
+        <div class="info-row"><span>Height</span><strong>{{ (patient.height_cm|string ~ ' cm') if patient.height_cm else 'N/A' }}</strong></div>
+        <div class="info-row"><span>Weight</span><strong>{{ (patient.weight_kg|string ~ ' kg') if patient.weight_kg else 'N/A' }}</strong></div>
+        <div class="info-row"><span>Phone</span><strong>{{ patient.user.phone or 'N/A' }}</strong></div>
+      </div>
+
+      {% if patient.conditions %}
+      <h4 style="margin:12px 0 8px;font-size:12px;text-transform:uppercase;color:#64748b;">Conditions</h4>
+      {% for c in patient.conditions if c.is_active %}
+      <div class="cond-item"><div class="cond-dot"></div> {{ c.name }}</div>
+      {% endfor %}
+      {% endif %}
+
+      {% if patient.medications %}
+      <h4 style="margin:12px 0 8px;font-size:12px;text-transform:uppercase;color:#64748b;">Medications</h4>
+      {% for m in patient.medications if m.is_active %}
+      <div class="info-row"><span>{{ m.name }}</span><strong>{{ m.dosage }} · {{ m.frequency }}</strong></div>
+      {% endfor %}
+      {% endif %}
+    </div>
+
+    <!-- Set Health Targets -->
+    <div class="page-card" style="margin-top:12px">
+      <div class="card-section-header"><h3>Set Health Targets</h3></div>
+      <form method="POST" action="{{ url_for('doctor_set_targets', pid=patient.id) }}" class="profile-form">
+        {% set t = patient.health_targets %}
+        <div class="form-grid-2">
+          <div class="form-group"><label>Glucose Min</label><input type="number" name="glucose_min" value="{{ t.glucose_min if t else 70 }}"></div>
+          <div class="form-group"><label>Glucose Max</label><input type="number" name="glucose_max" value="{{ t.glucose_max if t else 140 }}"></div>
+          <div class="form-group"><label>BP Systolic Max</label><input type="number" name="bp_systolic_max" value="{{ t.bp_systolic_max if t else 130 }}"></div>
+          <div class="form-group"><label>BP Diastolic Max</label><input type="number" name="bp_diastolic_max" value="{{ t.bp_diastolic_max if t else 80 }}"></div>
+          <div class="form-group"><label>HR Min</label><input type="number" name="hr_min" value="{{ t.hr_min if t else 60 }}"></div>
+          <div class="form-group"><label>HR Max</label><input type="number" name="hr_max" value="{{ t.hr_max if t else 100 }}"></div>
+          <div class="form-group"><label>SpO2 Min (%)</label><input type="number" name="spo2_min" value="{{ t.spo2_min if t else 95 }}"></div>
+          <div class="form-group"><label>HbA1c Max (%)</label><input type="number" name="hba1c_max" step="0.1" value="{{ t.hba1c_max if t else 7.0 }}"></div>
+        </div>
+        <div class="form-actions"><button type="submit" class="btn-primary">Update Targets</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right: Readings & Notes -->
+  <div class="patient-detail-right">
+    <!-- Active Alerts -->
+    {% if alerts %}
+    <div class="page-card alerts-section">
+      <h3>Active Alerts ({{ alerts|length }})</h3>
+      {% for a in alerts[:5] %}
+      <div class="alert-item alert-{{ a.severity }}">
+        <div class="alert-title">{{ '🚨' if a.severity=='critical' else '⚠️' }} {{ a.title }}</div>
+        <div class="alert-desc">{{ a.description }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Recent Readings -->
+    <div class="page-card">
+      <div class="card-section-header"><h3>Recent Readings</h3></div>
+      {% if readings %}
+      <table class="data-table">
+        <thead><tr><th>Date</th><th>HR</th><th>BP</th><th>Glucose</th><th>SpO2</th><th>Temp</th><th>Risk</th></tr></thead>
+        <tbody>
+          {% for r in readings %}
+          <tr class="row-{{ r.risk_level }}">
+            <td>{{ r.recorded_at.strftime('%d %b %H:%M') }}</td>
+            <td>{{ r.heart_rate|int if r.heart_rate else '-' }}</td>
+            <td>{% if r.bp_systolic %}{{ r.bp_systolic|int }}/{{ r.bp_diastolic|int }}{% else %}-{% endif %}</td>
+            <td>{{ r.blood_glucose|int if r.blood_glucose else '-' }}</td>
+            <td>{{ r.spo2 ~ '%' if r.spo2 else '-' }}</td>
+            <td>{{ r.temperature ~ '°C' if r.temperature else '-' }}</td>
+            <td><span class="risk-badge risk-{{ r.risk_level }}">{{ r.risk_level.upper() if r.risk_level else '-' }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><p>No readings recorded yet.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- Clinical Notes -->
+    <div class="page-card" style="margin-top:12px">
+      <div class="card-section-header"><h3>Clinical Notes</h3></div>
+      <form method="POST" action="{{ url_for('doctor_add_note', pid=patient.id) }}" class="profile-form">
+        <div class="form-group">
+          <textarea name="note" rows="3" placeholder="Add clinical observation or note..." required></textarea>
+        </div>
+        <div class="form-actions"><button type="submit" class="btn-primary">Save Note</button></div>
+      </form>
+      {% set notes = patient.conditions | list %}
+      {% set clinical_notes = [] %}
+      {# Get notes via doctor relationship #}
+    </div>
+  </div>
+</div>
+
+<a href="{{ url_for('doctor_dashboard') }}" class="btn-secondary" style="margin-top:16px;display:inline-block">← Back to Dashboard</a>
+{% endblock %}
